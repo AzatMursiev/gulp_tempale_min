@@ -1,20 +1,21 @@
-const {src, dest, parallel, series, watch} = require('gulp')
-sass = require('gulp-sass')
+const { src, dest, parallel, series, watch } = require('gulp')
+sass         = require('gulp-sass')
 autoprefixer = require('gulp-autoprefixer')
-sourcemaps = require('gulp-sourcemaps')
-imagemin = require('gulp-imagemin')
-del = require('del')
+sourcemaps   = require('gulp-sourcemaps')
+concat       = require('gulp-concat')
+imagemin     = require('gulp-imagemin')
+remove       = require('del')
 
 browserSync = require('browser-sync').create()
 
 
-function html() {
-    return src('app/*.html')
+function files () {
+    return src(['app/*.html', 'app/fonts/**/*', 'app/files/**/*'], {base: 'app'})
     .pipe(dest('build'))
     .pipe(browserSync.stream())
 }
 
-function styles() {
+function styles () {
     return src('app/sass/**/*.+(sass|scss)')
     .pipe(sourcemaps.init())
     .pipe(sass({outputStyle: 'expanded'}).on('error', sass.logError))
@@ -24,31 +25,32 @@ function styles() {
     .pipe(browserSync.stream())
 }
 
-function scripts() {
+function scripts () {
     return src('app/js/**/*.js')
+    .pipe(concat('scripts.js'))
     .pipe(dest('build/js'))
     .pipe(browserSync.stream())
 }
 
-function images() {
+function images () {
     return src('app/img/**/*')
     .pipe(imagemin())
     .pipe(dest('build/img'))
 }
 
-function clean() {
-    return del('build/*')
+function clean () {
+    return remove('build/*')
 }
 
-function watchFiles() {
+function watchFiles () {
     browserSync.init({
         server: 'build', notify: false
     })
-    watch('app/*.html', html)
+    watch(['app/*.html', 'app/fonts/**/*', 'app/files/**/*'], files)
     watch('app/sass/**/*.+(sass|scss)', styles)
     watch('app/js/**/*.js', scripts)
     watch('app/img/**/*', images)
 }
 
-exports.build = series(clean, parallel(styles, html, images, scripts))
-exports.default = series(clean, parallel(styles, html, images, scripts, watchFiles))
+exports.build = series(clean, parallel(files, styles, scripts, images))
+exports.default = series(clean, images, parallel(files, styles, scripts, watchFiles))
